@@ -4,14 +4,37 @@ export interface User {
   email: string;
   phone?: string;
   avatarUrl?: string;
+  customAvatarUrl?: string;
+  onboardingCompleted?: boolean;
+  preferences?: UserPreferences;
 }
+
+export interface UserPreferences {
+  theme?: 'light' | 'dark';
+  currency?: string;
+  notifications?: boolean;
+}
+
+export type MemberRole = 'admin' | 'member';
 
 export interface Member {
   id: string;
   name: string;
-  avatarUrl?: string; // Added for avatar support
+  avatarUrl?: string;
   totalPaid: number;
   balance: number; // + means receives, - means pays
+  role?: MemberRole;
+  joinedAt?: number;
+}
+
+export interface JoinRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userAvatarUrl?: string;
+  requestedAt: number;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export type SplitType = 'EQUAL' | 'EXACT' | 'PERCENT';
@@ -37,6 +60,8 @@ export interface Trip {
   currency: string;
   createdBy: string;
   createdAt: number;
+  inviteCode?: string;
+  joinRequests?: JoinRequest[];
 }
 
 export interface Debt {
@@ -45,4 +70,4 @@ export interface Debt {
   amount: number;
 }
 
-export type ViewState = 'HOME' | 'TRIP_DASHBOARD' | 'TRIP_BALANCE' | 'ADD_EXPENSE' | 'ADD_MEMBER' | 'CREATE_TRIP';
+export type ViewState = 'HOME' | 'TRIP_DASHBOARD' | 'TRIP_BALANCE' | 'ADD_EXPENSE' | 'ADD_MEMBER' | 'CREATE_TRIP' | 'JOIN_REQUESTS' | 'ONBOARDING';

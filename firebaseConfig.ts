@@ -5,13 +5,12 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAoVAOMzsI9RMHmXNg55afvpwCey7Sk8RE",
-  authDomain: "parnav-a3e78.firebaseapp.com",
-  projectId: "parnav-a3e78",
-  storageBucket: "parnav-a3e78.firebasestorage.app",
-  messagingSenderId: "352103450526",
-  appId: "1:352103450526:web:75fa9079ff0e0e6e2af88f",
-  measurementId: "G-FGNP9QRPCZ"
+  apiKey: "AIzaSyBeEKms--stcyW5VmR4pQNJ4rEeyONU0Cc",
+  authDomain: "travle-planer.firebaseapp.com",
+  projectId: "travle-planer",
+  storageBucket: "travle-planer.firebasestorage.app",
+  messagingSenderId: "272409549250",
+  appId: "1:272409549250:web:0acf5524884a6d5c84de5b"
 };
 
 // Initialize Firebase
