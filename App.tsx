@@ -39,12 +39,20 @@ export default function App() {
 
     // Initialize Auth (Firebase)
     useEffect(() => {
-        const unsubscribe = AuthService.subscribeToAuth((currentUser) => {
-            setUser(currentUser);
-            setAuthLoading(false);
+        const unsubscribe = AuthService.subscribeToAuth(async (currentUser) => {
             if (currentUser) {
+                // Merge with Firestore profile data
+                const firestoreProfile = await DbService.getUserProfile(currentUser.id);
+                const mergedUser = {
+                    ...currentUser,
+                    ...firestoreProfile
+                };
+                setUser(mergedUser);
+                setAuthLoading(false);
                 setView(v => (v === 'LOGIN' ? 'HOME' : v));
             } else {
+                setUser(null);
+                setAuthLoading(false);
                 setView('LOGIN');
                 setTrips([]);
                 setActiveTrip(null);
@@ -425,7 +433,7 @@ export default function App() {
         };
 
         return (
-            <div className="h-full flex flex-col items-center justify-center p-8 bg-white animate-fade-in text-center overflow-y-auto">
+            <div className="min-h-screen flex flex-col items-center justify-center p-6 sm:p-8 bg-white animate-fade-in text-center overflow-y-auto">
                 <div className="w-24 h-24 bg-indigo-100 rounded-3xl flex items-center justify-center mb-6 text-indigo-600 rotate-12 animate-pop delay-100 shrink-0">
                     <IndianRupee size={48} strokeWidth={2.5} />
                 </div>
@@ -510,23 +518,42 @@ export default function App() {
             setIsCustomAvatar(isCustom || false);
         };
 
-        const handleSaveSettings = () => {
+        const handleSaveSettings = async () => {
             if (!name.trim() || !user) return;
 
-            const updatedUser: User = {
-                ...user,
-                name: name.trim(),
-                phone,
-                avatarUrl: isCustomAvatar ? undefined : selectedAvatar,
-                customAvatarUrl: isCustomAvatar ? selectedAvatar : undefined
-            };
+            try {
+                const updatedUser: User = {
+                    ...user,
+                    name: name.trim(),
+                    phone,
+                    avatarUrl: isCustomAvatar ? undefined : selectedAvatar,
+                    customAvatarUrl: isCustomAvatar ? selectedAvatar : undefined
+                };
 
-            setUser(updatedUser);
-            setView('PROFILE');
+                // Update Firebase Auth profile (displayName and photoURL)
+                await AuthService.updateUserProfile({
+                    displayName: name.trim(),
+                    photoURL: isCustomAvatar ? selectedAvatar : (selectedAvatar !== AVATAR_BOY && selectedAvatar !== AVATAR_GIRL ? selectedAvatar : undefined)
+                });
+
+                // Save additional profile data to Firestore
+                await DbService.saveUserProfile(user.id, {
+                    name: name.trim(),
+                    phone,
+                    avatarUrl: isCustomAvatar ? undefined : selectedAvatar,
+                    customAvatarUrl: isCustomAvatar ? selectedAvatar : undefined
+                });
+
+                setUser(updatedUser);
+                setView('PROFILE');
+            } catch (error) {
+                console.error("Error saving profile", error);
+                alert("Failed to save profile. Please try again.");
+            }
         };
 
         return (
-            <div className="h-full overflow-y-auto bg-white p-6 animate-slide-in-right pb-24">
+            <div className="min-h-screen scroll-container bg-white p-4 sm:p-6 animate-slide-in-right pb-24">
                 <div className="flex items-center gap-4 mb-8">
                     <button onClick={() => setView('PROFILE')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors"><ArrowLeft /></button>
                     <h2 className="text-2xl font-bold">Settings</h2>
@@ -578,8 +605,8 @@ export default function App() {
     };
 
     const HomeView = () => (
-        <div className="h-full overflow-y-auto pb-24 animate-fade-in">
-            <header className="bg-white p-6 sticky top-0 z-10 border-b border-gray-100 flex justify-between items-center shadow-sm animate-slide-down">
+        <div className="min-h-screen scroll-container pb-24 animate-fade-in">
+            <header className="bg-white p-4 sm:p-6 sticky top-0 z-10 border-b border-gray-100 flex justify-between items-center shadow-sm animate-slide-down">
                 <div>
                     <h1 className="text-xl font-bold text-gray-900">Trip Splitter by Pranav</h1>
                     <p className="text-gray-500 text-sm">Welcome back, {user?.name.split(' ')[0]}</p>
@@ -591,7 +618,7 @@ export default function App() {
                 </div>
             </header>
 
-            <div className="p-6 grid gap-4">
+            <div className="p-4 sm:p-6 grid gap-4">
                 {trips.length === 0 ? (
                     <div className="text-center py-20 opacity-50 animate-slide-up">
                         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
@@ -646,7 +673,7 @@ export default function App() {
     const ImportTripView = () => {
         const [code, setCode] = useState('');
         return (
-            <div className="h-full overflow-y-auto bg-white p-6 animate-slide-in-right">
+            <div className="min-h-screen scroll-container bg-white p-4 sm:p-6 animate-slide-in-right">
                 <button onClick={() => setView('HOME')} className="mb-8 p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full w-10 h-10 flex items-center justify-center transition-colors"><ArrowLeft size={24} /></button>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2 animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>Join a Trip</h2>
                 <p className="text-gray-500 mb-8 animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>Paste the trip code (from PDF report) below.</p>
@@ -674,7 +701,7 @@ export default function App() {
         const [name, setName] = useState('');
 
         return (
-            <div className="h-full overflow-y-auto bg-white p-6 animate-slide-up">
+            <div className="min-h-screen scroll-container bg-white p-4 sm:p-6 animate-slide-up">
                 <button onClick={() => setView('HOME')} className="mb-8 p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full w-10 h-10 flex items-center justify-center transition-colors"><ArrowLeft size={24} /></button>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2 animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>New Trip</h2>
                 <p className="text-gray-500 mb-8 animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>Give your adventure a name.</p>
@@ -709,7 +736,7 @@ export default function App() {
         const displayAvatar = user.customAvatarUrl || user.avatarUrl || AVATAR_BOY;
 
         return (
-            <div className="h-full overflow-y-auto bg-white p-6 pb-24 animate-fade-in">
+            <div className="min-h-screen scroll-container bg-white p-4 sm:p-6 pb-24 animate-fade-in">
                 <h2 className="text-3xl font-bold text-gray-900 mb-8 animate-slide-up">Profile</h2>
 
                 <div className="flex flex-col items-center mb-8 animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>
@@ -767,8 +794,8 @@ export default function App() {
         }).reverse();
 
         return (
-            <div className="h-full overflow-y-auto pb-24 bg-gray-50 animate-fade-in">
-                <div className="bg-white p-6 pb-4 rounded-b-3xl shadow-sm border-b border-gray-100 sticky top-0 z-10 animate-slide-down">
+            <div className="min-h-screen scroll-container pb-24 bg-gray-50 animate-fade-in">
+                <div className="bg-white p-4 sm:p-6 pb-4 rounded-b-3xl shadow-sm border-b border-gray-100 sticky top-0 z-10 animate-slide-down">
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <h1 className="text-2xl font-extrabold text-gray-900">{activeTrip.name}</h1>
@@ -1619,7 +1646,7 @@ export default function App() {
     }
 
     return (
-        <div className="max-w-md mx-auto bg-white h-screen relative shadow-2xl overflow-hidden">
+        <div className="w-full max-w-md mx-auto bg-white min-h-screen relative shadow-2xl">
             {view === 'LOGIN' && <LoginView />}
             {view === 'HOME' && <HomeView />}
             {view === 'PROFILE' && <ProfileView />}

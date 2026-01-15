@@ -102,5 +102,21 @@ export const AuthService = {
                 callback(null);
             }
         });
+    },
+
+    // Update User Profile
+    updateUserProfile: async (updates: {
+        displayName?: string;
+        photoURL?: string;
+    }): Promise<void> => {
+        try {
+            if (!auth.currentUser) {
+                throw new Error("No user is currently logged in");
+            }
+            await updateProfile(auth.currentUser, updates);
+        } catch (error) {
+            console.error("Error updating user profile", error);
+            throw error;
+        }
     }
 };

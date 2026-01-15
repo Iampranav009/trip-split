@@ -117,5 +117,28 @@ export const DbService = {
             console.error("Error deleting trip", error);
             throw error;
         }
+    },
+
+    // Save user profile to Firestore
+    saveUserProfile: async (userId: string, userData: Partial<User>) => {
+        try {
+            const userRef = doc(db, 'users', userId);
+            await setDoc(userRef, userData, { merge: true });
+        } catch (error) {
+            console.error("Error saving user profile", error);
+            throw error;
+        }
+    },
+
+    // Get user profile from Firestore
+    getUserProfile: async (userId: string): Promise<Partial<User> | null> => {
+        try {
+            const userRef = doc(db, 'users', userId);
+            const userSnap = await getDoc(userRef);
+            return userSnap.exists() ? userSnap.data() as Partial<User> : null;
+        } catch (error) {
+            console.error("Error getting user profile", error);
+            return null;
+        }
     }
 };
