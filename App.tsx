@@ -431,12 +431,16 @@ export default function App() {
                     await AuthService.signUpWithEmail(email, password, name);
                 }
             } catch (error: any) {
-                console.error(error);
-                let msg = error.message || "Authentication failed";
+                console.error("Auth error:", error);
+                let msg = error?.message || "Authentication failed";
                 if (msg.includes("user-not-found") || msg.includes("wrong-password") || msg.includes("invalid-credential")) {
                     msg = "Invalid email or password. Please try again.";
                 } else if (msg.includes("email-already-in-use")) {
-                    msg = "An account with this email already exists. Please sign in.";
+                    msg = "An account with this email already exists. Please sign in instead.";
+                } else if (msg.includes("operation-not-allowed")) {
+                    msg = "Sign-in method disabled. Please enable Email/Password in Firebase Console -> Authentication -> Sign-in method.";
+                } else if (msg.includes("network-request-failed")) {
+                    msg = "Network error. Please check your internet connection.";
                 }
                 setErrorMessage(msg);
             } finally {
@@ -449,7 +453,14 @@ export default function App() {
             try {
                 await handleGoogleLogin();
             } catch (error: any) {
-                setErrorMessage("Google authentication failed. Please try again.");
+                console.error("Google Auth Error:", error);
+                let msg = error?.message || "Google authentication failed";
+                if (msg.includes("popup-closed-by-user") || msg.includes("canceled")) {
+                    msg = "Sign-in was cancelled.";
+                } else if (msg.includes("10:")) {
+                    msg = "Google Sign-In developer configuration issue. Please ensure SHA-1 fingerprint is added in Firebase Console.";
+                }
+                setErrorMessage(msg);
             }
         };
 

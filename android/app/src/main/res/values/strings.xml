@@ -4,4 +4,5 @@
     <string name="title_activity_main">RupayaSplit</string>
     <string name="package_name">com.pranav.rupayasplit</string>
     <string name="custom_url_scheme">com.pranav.rupayasplit</string>
+    <string name="server_client_id">272409549250-web:0acf5524884a6d5c84de5b</string>
 </resources>
