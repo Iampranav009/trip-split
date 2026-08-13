@@ -13,6 +13,8 @@
     "@capacitor/android": "^6.0.0",
     "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.4",
+    "@capacitor/status-bar": "^6.0.3",
     "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@types/js-cookie": "^3.0.6",
     "@types/react": "^18.2.66",
