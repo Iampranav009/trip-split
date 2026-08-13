@@ -32,5 +32,13 @@ dist-ssr
 # Vercel
 .vercel
 
-# Android
-android/
+# Android — exclude build outputs and secrets, commit the project
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/*.jks
+android/app/*.keystore
+*.jks
+*.keystore
+keystore.properties
