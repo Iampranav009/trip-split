@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trip } from '../types';
 import { InviteService } from '../services/inviteService';
-import { Copy, Check, X, Share2, Mail } from 'lucide-react';
+import { Copy, Check, X, Share2, Mail, MessageCircle, Link2, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface InviteModalProps {
@@ -13,19 +13,20 @@ interface InviteModalProps {
 export const InviteModal: React.FC<InviteModalProps> = ({ trip, onClose, onUpdate }) => {
     const [inviteCode, setInviteCode] = useState<string>(trip.inviteCode || '');
     const [shareLink, setShareLink] = useState<string>('');
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState<'link' | 'code' | null>(null);
     const [loading, setLoading] = useState(false);
+    const [showQR, setShowQR] = useState(false);
 
     useEffect(() => {
-        const initInviteCode = async () => {
+        const init = async () => {
             if (!trip.inviteCode) {
                 setLoading(true);
                 try {
                     const code = await InviteService.createInviteCode(trip.id);
                     setInviteCode(code);
                     setShareLink(InviteService.generateShareLink(code));
-                } catch (error) {
-                    console.error('Error creating invite code:', error);
+                } catch (err) {
+                    console.error('Error creating invite code:', err);
                 } finally {
                     setLoading(false);
                 }
@@ -34,124 +35,174 @@ export const InviteModal: React.FC<InviteModalProps> = ({ trip, onClose, onUpdat
                 setShareLink(InviteService.generateShareLink(trip.inviteCode));
             }
         };
-
-        initInviteCode();
+        init();
     }, [trip]);
 
-    const handleCopy = async () => {
+    const shareMessage = shareLink
+        ? `Hey! I'm using RupayaSplit to track our group expenses for *"${trip.name}"*.\n\nJoin me so we can split bills and settle up easily.\n\n👉 Join here: ${shareLink}\n\n🔑 Invite Code: *${inviteCode}*`
+        : '';
+
+    const handleCopyLink = async () => {
         try {
             await navigator.clipboard.writeText(shareLink);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (error) {
-            console.error('Failed to copy:', error);
+            setCopied('link');
+            setTimeout(() => setCopied(null), 2000);
+        } catch { }
+    };
+
+    const handleCopyCode = async () => {
+        try {
+            await navigator.clipboard.writeText(inviteCode);
+            setCopied('code');
+            setTimeout(() => setCopied(null), 2000);
+        } catch { }
+    };
+
+    const handleWhatsApp = () => {
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank');
+    };
+
+    const handleNativeShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Join "${trip.name}" on RupayaSplit`,
+                    text: `I'm tracking group expenses for "${trip.name}" on RupayaSplit. Join me!`,
+                    url: shareLink,
+                });
+            } catch { }
         }
     };
 
-    const handleShareWhatsApp = () => {
-        const message = `Join my trip "${trip.name}" on Trip Splitter!\n\n${shareLink}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-    };
-
-    const handleShareEmail = () => {
-        const subject = `Join Trip: ${trip.name}`;
-        const body = `You're invited to join my trip "${trip.name}" on Trip Splitter!\n\nClick the link below to join:\n${shareLink}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const handleEmail = () => {
+        const subject = encodeURIComponent(`Join my trip "${trip.name}" on RupayaSplit`);
+        const body = encodeURIComponent(
+            `Hi,\n\nI'm using RupayaSplit to track group expenses for "${trip.name}".\n\nJoin here: ${shareLink}\n\nOr use invite code: ${inviteCode}\n\n— Sent via RupayaSplit`
+        );
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-            <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl animate-slide-up">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-[60] animate-fade-in" onClick={onClose}>
+            <div
+                className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md shadow-2xl animate-slide-up overflow-hidden flex flex-col"
+                style={{ maxHeight: '92vh' }}
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Handle (mobile) */}
+                <div className="flex justify-center pt-3 pb-1 sm:hidden">
+                    <div className="w-10 h-1.5 bg-gray-200 rounded-full" />
+                </div>
+
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <div className="px-5 pt-4 pb-3 flex items-center justify-between border-b border-gray-100">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Invite Friends</h2>
-                        <p className="text-sm text-gray-500 mt-1">Share this trip with others</p>
+                        <h2 className="text-lg font-bold text-gray-900">Invite to Trip</h2>
+                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[220px]">{trip.name}</p>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                        <X size={24} className="text-gray-500" />
+                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition-all">
+                        <X size={18} />
                     </button>
                 </div>
 
-                {/* Content */}
-                <div className="p-6 space-y-6">
+                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 no-scrollbar">
                     {loading ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <div className="flex justify-center py-10">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
                         </div>
                     ) : (
                         <>
-                            {/* QR Code */}
-                            <div className="flex justify-center">
-                                <div className="bg-white p-4 rounded-2xl border-2 border-gray-200 shadow-sm">
-                                    <QRCodeSVG value={shareLink} size={180} level="M" />
+                            {/* Invite Code — primary action */}
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+                                <p className="text-[11px] text-indigo-400 font-semibold uppercase tracking-wider mb-2">Invite Code</p>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-2xl font-bold text-indigo-700 font-mono tracking-widest">{inviteCode}</span>
+                                    <button
+                                        onClick={handleCopyCode}
+                                        className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${copied === 'code' ? 'bg-emerald-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+                                    >
+                                        {copied === 'code' ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
+                                    </button>
                                 </div>
-                            </div>
-
-                            {/* Invite Code */}
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                    Invite Code
-                                </label>
-                                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 font-mono text-center text-lg font-bold text-indigo-600">
-                                    {inviteCode}
-                                </div>
+                                <p className="text-xs text-indigo-400 mt-2">Your friend enters this code in the "Join Trip" screen</p>
                             </div>
 
                             {/* Share Link */}
                             <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                                    Share Link
-                                </label>
+                                <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-2">Share Link</p>
                                 <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={shareLink}
-                                        readOnly
-                                        className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 outline-none"
-                                    />
+                                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-500 font-mono truncate flex items-center">
+                                        {shareLink || '—'}
+                                    </div>
                                     <button
-                                        onClick={handleCopy}
-                                        className={`px-4 py-3 rounded-xl font-semibold transition-all flex items-center gap-2 ${copied
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'
-                                            }`}
+                                        onClick={handleCopyLink}
+                                        className={`shrink-0 px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 ${copied === 'link' ? 'bg-emerald-500 text-white' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
                                     >
-                                        {copied ? (
-                                            <>
-                                                <Check size={18} />
-                                                Copied
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Copy size={18} />
-                                                Copy
-                                            </>
-                                        )}
+                                        {copied === 'link' ? <Check size={13} /> : <Copy size={13} />}
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Share Options */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    onClick={handleShareWhatsApp}
-                                    className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 p-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    <Share2 size={18} />
-                                    WhatsApp
-                                </button>
-                                <button
-                                    onClick={handleShareEmail}
-                                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 p-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 active:scale-95"
-                                >
-                                    <Mail size={18} />
-                                    Email
-                                </button>
+                            {/* Share via */}
+                            <div>
+                                <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-2">Share Via</p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        onClick={handleWhatsApp}
+                                        className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-emerald-50 border border-emerald-100 active:scale-95 transition-all"
+                                    >
+                                        <MessageCircle size={20} className="text-emerald-600" />
+                                        <span className="text-[11px] font-semibold text-emerald-700">WhatsApp</span>
+                                    </button>
+                                    {typeof navigator !== 'undefined' && 'share' in navigator ? (
+                                        <button
+                                            onClick={handleNativeShare}
+                                            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-indigo-50 border border-indigo-100 active:scale-95 transition-all"
+                                        >
+                                            <Share2 size={20} className="text-indigo-600" />
+                                            <span className="text-[11px] font-semibold text-indigo-700">More</span>
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleEmail}
+                                            className="flex flex-col items-center gap-1.5 py-3 rounded-xl bg-blue-50 border border-blue-100 active:scale-95 transition-all"
+                                        >
+                                            <Mail size={20} className="text-blue-600" />
+                                            <span className="text-[11px] font-semibold text-blue-700">Email</span>
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => setShowQR(v => !v)}
+                                        className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border active:scale-95 transition-all ${showQR ? 'bg-gray-900 border-gray-900' : 'bg-gray-50 border-gray-100'}`}
+                                    >
+                                        <QrCode size={20} className={showQR ? 'text-white' : 'text-gray-600'} />
+                                        <span className={`text-[11px] font-semibold ${showQR ? 'text-white' : 'text-gray-600'}`}>QR Code</span>
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* QR Code — toggled */}
+                            {showQR && shareLink && (
+                                <div className="flex flex-col items-center py-4 bg-gray-50 rounded-2xl border border-gray-100 animate-slide-up">
+                                    <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm">
+                                        <QRCodeSVG value={shareLink} size={160} level="M" />
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-3 font-medium">Scan to join {trip.name}</p>
+                                </div>
+                            )}
+
+                            {/* Message preview */}
+                            <div>
+                                <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider mb-2">Message Preview</p>
+                                <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+                                    <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">{shareMessage || '—'}</p>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <p className="text-center text-[11px] text-gray-400 pb-2">
+                                Built by <span className="font-semibold text-gray-600">Pranav Shinde</span> · RupayaSplit
+                            </p>
                         </>
                     )}
                 </div>

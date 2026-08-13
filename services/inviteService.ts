@@ -1,4 +1,4 @@
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { Trip, JoinRequest, Member } from '../types';
 
@@ -154,20 +154,10 @@ export const InviteService = {
      */
     getTripByInviteCode: async (inviteCode: string): Promise<Trip | null> => {
         try {
-            // Note: This requires querying by inviteCode
-            // For now, we'll need to pass the tripId along with inviteCode
-            // or implement a Firestore query
-            // For simplicity, we encode tripId in the invite code
-            const tripId = inviteCode.split('-')[0];
-            const tripRef = doc(db, 'trips', tripId);
-            const tripSnap = await getDoc(tripRef);
-
-            if (tripSnap.exists()) {
-                const tripData = tripSnap.data() as Trip;
-                // Verify invite code matches
-                if (tripData.inviteCode === inviteCode) {
-                    return tripData;
-                }
+            const q = query(collection(db, 'trips'), where('inviteCode', '==', inviteCode));
+            const snapshot = await getDocs(q);
+            if (!snapshot.empty) {
+                return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as Trip;
             }
             return null;
         } catch (error) {

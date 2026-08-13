@@ -54,6 +54,7 @@ export interface Expense {
 export interface Trip {
   id: string;
   name: string;
+  description?: string;
   totalExpense: number;
   members: Member[];
   expenses: Expense[];

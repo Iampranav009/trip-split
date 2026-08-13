@@ -1,4 +1,3 @@
-
 import {
     collection,
     addDoc,
@@ -16,25 +15,33 @@ import {
 import { db } from '../firebaseConfig';
 import { Trip, User } from '../types';
 
+// Helper to recursively strip undefined values before writing to Firestore
+const sanitizeFirestoreData = (data: Record<string, any>): Record<string, any> => {
+    const clean: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined) {
+            if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+                clean[key] = sanitizeFirestoreData(value);
+            } else if (Array.isArray(value)) {
+                clean[key] = value.map(item =>
+                    (item !== null && typeof item === 'object') ? sanitizeFirestoreData(item) : item
+                );
+            } else {
+                clean[key] = value;
+            }
+        }
+    }
+    return clean;
+};
+
 export const DbService = {
     // Create a new trip
     createTrip: async (trip: Trip) => {
         try {
-            // We use setDoc with the ID generated on the client or let Firestore generate one?
-            // The current app generates an ID (timestamp string). 
-            // Better to let Firestore generate one for better uniqueness or use the timestamp one if we want to keep logic.
-            // Let's use the provided ID for now to minimize refactor friction, or use setDoc if we want to control ID.
-
-            // Using setDoc to keep the ID consistent with client-side generation if strict.
-            // However, Firestore auto-ID is better. Let's stick to the generated ID from the app logic for now (Date.now())
-            // but beware of collisions.
-
-            // Actually, in the App.tsx, `handleCreateTrip` generates an ID.
-            // Let's use `setDoc` to respect that ID.
-
             const tripRef = doc(db, 'trips', trip.id);
             const memberIds = trip.members.map(m => m.id);
-            await setDoc(tripRef, { ...trip, memberIds });
+            const cleanTripData = sanitizeFirestoreData({ ...trip, memberIds });
+            await setDoc(tripRef, cleanTripData);
         } catch (error) {
             console.error("Error creating trip", error);
             throw error;
@@ -46,34 +53,16 @@ export const DbService = {
         try {
             const tripRef = doc(db, 'trips', trip.id);
             const memberIds = trip.members.map(m => m.id);
-            await setDoc(tripRef, { ...trip, memberIds }, { merge: true });
+            const cleanTripData = sanitizeFirestoreData({ ...trip, memberIds });
+            await setDoc(tripRef, cleanTripData, { merge: true });
         } catch (error) {
             console.error("Error updating trip", error);
             throw error;
         }
     },
 
-    // Join a trip (check if exists, then add to user's list implies user-trip mapping)
-    // For now, the app stores *trips* in local storage. 
-    // We should probably query trips where 'members' contains the user.
-
     // Subscribe to trips where the user is a member
     subscribeToTrips: (userId: string, callback: (trips: Trip[]) => void) => {
-        // Query trips where members array contains an object with id == userId.
-        // Firestore array-contains-any works on simple values. 
-        // Our members are objects. We can't easily query "members contains object with id X".
-        // Alternative: Store a separate array of `memberIds` on the trip document for querying.
-
-        // **IMPORTANT**: We need to modify the Trip structure or how we save it to include `memberIds` for efficient querying.
-        // Or we can just filter client side if dataset is small, but that's bad practice.
-        // Let's assume we will add a `memberIds` field to the Trip object in Firestore for querying.
-
-        // Wait, I can't easily change the Trip type everywhere without breaking things.
-        // But for Firestore, I can save `memberIds` as a derived field.
-
-        // Let's query: collection('trips'), where('memberIds', 'array-contains', userId)
-        // I need to make sure `createTrip` and `updateTrip` save this `memberIds`.
-
         const q = query(
             collection(db, 'trips'),
             where('memberIds', 'array-contains', userId)
@@ -83,10 +72,6 @@ export const DbService = {
             const trips: Trip[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
-                // We need to ensure we don't pass internal fields if not needed, but `...data` is fine.
-                // We might need to sanitize/map if dates are Timestamps.
-                // The current app uses number (Date.now()) or ISO string.
-                // Firestore saves as numbers/strings fine.
                 trips.push(data as Trip);
             });
             callback(trips);
@@ -123,7 +108,8 @@ export const DbService = {
     saveUserProfile: async (userId: string, userData: Partial<User>) => {
         try {
             const userRef = doc(db, 'users', userId);
-            await setDoc(userRef, userData, { merge: true });
+            const cleanData = sanitizeFirestoreData(userData);
+            await setDoc(userRef, cleanData, { merge: true });
         } catch (error) {
             console.error("Error saving user profile", error);
             throw error;

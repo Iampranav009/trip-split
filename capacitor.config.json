@@ -1,6 +1,6 @@
 {
   "appId": "com.pranav.tripsplit",
-  "appName": "Trip Splitter",
+  "appName": "Rupaya Split",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
