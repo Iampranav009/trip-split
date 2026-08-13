@@ -35,7 +35,7 @@ In the Vercel project settings, add the following environment variables:
 Add these variables (use your Firebase credentials):
 
 ```
-VITE_FIREBASE_API_KEY=AIzaSyBeEKms--stcyW5VmR4pQNJ4rEeyONU0Cc
+VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=travle-planer.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=travle-planer
 VITE_FIREBASE_STORAGE_BUCKET=travle-planer.firebasestorage.app
