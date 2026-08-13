@@ -31,14 +31,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # ── 4. Android SDK 33 ─────────────────────────────────────────────────
+      # ── 4. Android SDK 34 ─────────────────────────────────────────────────
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK 33 platform
+      - name: Install Android SDK 34 platform
         run: |
-          sdkmanager "platforms;android-33" \
-                     "build-tools;33.0.2" \
+          sdkmanager "platforms;android-34" \
+                     "build-tools;34.0.0" \
                      "platform-tools"
 
       # ── 5. Install npm deps & build web bundle ────────────────────────────
@@ -124,6 +124,6 @@ jobs:
             **Developer:** Pranav Shinde
             **Package:** com.pranav.rupayasplit
             **Min Android:** 7.0 (API 24)
-            **Target Android:** 13 (API 33)
+            **Target Android:** 14 (API 34)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
