@@ -2146,7 +2146,7 @@ export default function App() {
         const isActiveTrip = view === 'TRIP_DASHBOARD' || view === 'TRIP_BALANCE';
 
         return (
-            <div className="absolute bottom-0 left-0 right-0 z-50">
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50">
                 <div className="bg-white border-t border-gray-100" style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.06)' }}>
                     <div className="flex items-center px-2">
                         {/* Home */}
@@ -2229,7 +2229,7 @@ export default function App() {
     }
 
     return (
-        <div className="w-full max-w-md mx-auto bg-white h-screen flex flex-col relative shadow-2xl overflow-hidden">
+        <div className="w-full max-w-md mx-auto bg-white h-screen h-[100dvh] flex flex-col relative shadow-2xl overflow-hidden">
             {view === 'LOGIN' && <LoginView />}
             {view === 'HOME' && <HomeView />}
             {view === 'PROFILE' && <ProfileView />}

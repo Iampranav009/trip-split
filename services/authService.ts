@@ -1,8 +1,11 @@
 
 import Cookies from 'js-cookie';
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import {
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithCredential,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
@@ -13,19 +16,38 @@ import {
 import { auth } from '../firebaseConfig';
 import { User } from '../types';
 
+// Initialize native GoogleAuth plugin if running inside Capacitor Android/iOS
+if (Capacitor.isNativePlatform()) {
+    try {
+        GoogleAuth.initialize();
+    } catch (e) {
+        console.warn('GoogleAuth initialization notice:', e);
+    }
+}
+
 export const AuthService = {
-    // Sign in with Google
+    // Sign in with Google (Supports Web + Capacitor Android Native)
     signInWithGoogle: async (): Promise<User> => {
-        const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
+            let firebaseUser: FirebaseUser;
+
+            if (Capacitor.isNativePlatform()) {
+                const googleUser = await GoogleAuth.signIn();
+                const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+                const result = await signInWithCredential(auth, credential);
+                firebaseUser = result.user;
+            } else {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                firebaseUser = result.user;
+            }
+
             return {
-                id: user.uid,
-                name: user.displayName || 'User',
-                email: user.email || '',
-                avatarUrl: user.photoURL || undefined,
-                phone: user.phoneNumber || undefined
+                id: firebaseUser.uid,
+                name: firebaseUser.displayName || 'User',
+                email: firebaseUser.email || '',
+                avatarUrl: firebaseUser.photoURL || undefined,
+                phone: firebaseUser.phoneNumber || undefined
             };
         } catch (error) {
             console.error("Error signing in with Google", error);

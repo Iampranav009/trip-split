@@ -12,6 +12,11 @@
     "webContentsDebuggingEnabled": false
   },
   "plugins": {
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "272409549250-web:0acf5524884a6d5c84de5b",
+      "forceCodeForRefreshToken": true
+    },
     "SplashScreen": {
       "launchShowDuration": 1800,
       "launchAutoHide": true,
